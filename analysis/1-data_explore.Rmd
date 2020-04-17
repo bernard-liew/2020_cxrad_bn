@@ -1,0 +1,206 @@
+---
+title: "1-data_explore"
+author: "Bernard"
+date: "2020-04-17"
+output: workflowr::wflow_html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Introduction
+
+### Import libraries
+
+```{r, message=F, warning=F}
+
+rm (list = ls())
+source ("code/load_package.R")
+source ("code/helper_func.R")
+
+```
+
+### Import data
+
+```{r}
+
+dat <- read_excel("data/Nack_T1_T5_long.xlsx")
+var_names <- as.data.frame (read_excel("data/new_header.xlsx", col_names = FALSE))[,1]
+
+
+names (dat)[1:length (var_names)] <- var_names
+```
+
+
+### Get column names
+
+```{r, eval= FALSE}
+
+names (dat) <- tolower(names (dat))
+
+var_names <- names (dat)
+
+```
+
+
+### Remove redundant variables
+
+```{r, eval= FALSE}
+keep_var <- c ("time",
+               "subj",
+              "age",
+              "sex",
+              "grp",
+              "vas_neck",
+              "vas_arm",
+              "vas_head",
+              "ndi",
+              "ses",
+              "pcs",
+              "tsk",
+              "anx",
+              "dep")
+
+dat_sub <- dat[, names (dat) %in% keep_var]
+
+dat_sub <- map_df (dat_sub, make_NA)
+
+```
+
+### Data exploration
+
+#### Create report
+
+```{r}
+
+dat_sub %>%
+  mutate (sex = factor (sex),
+          grp = factor (grp)) %>%
+  filter (time != 5) %>%
+  pivot_wider(names_from = "time",
+              names_sep = "_",
+              values_from = c(vas_neck:dep)) %>%
+  create_report(output_file = "explore_report.html",
+                output_dir = "./output/")
+
+```
+
+#### Plot missing data
+
+```{r fig.height=15}
+
+dat_sub %>%
+  filter (time != 5) %>%
+  mutate (sex = factor (sex),
+          grp = factor (grp)) %>%
+  pivot_wider(names_from = "time",
+              names_sep = "_",
+              values_from = c(vas_neck:dep)) %>%
+  plot_missing()
+
+```
+
+#### Dotplot
+
+```{r, fig.height = 10}
+
+df.plot <- dat_sub %>%
+            filter (time != 5) %>%
+            gather (-c(subj, age, grp, sex, time), key = var, value = val)
+
+ggplot (df.plot ) +
+  geom_point (aes(x = 1:nrow (df.plot), 
+                  y = val, 
+                  colour = as.factor (time), 
+                  shape = as.factor (grp))) +
+  facet_wrap(~ var, ncol = 5, scale = "free")
+
+
+```
+
+#### Descriptives for dataset
+
+```{r, results="asis"}
+
+tableby (time ~., data = dat_sub, digits = 2, digits.p = 2) %>%
+  summary()
+
+```
+
+## Data preprocessing
+
+### Restructure long to wide
+
+Keep all variables except NDI in time = 2 and time = 3 as predictors
+Keep NDI in time 4 as outcome
+
+```{r, eval= FALSE}
+
+target <- c("ndi")
+
+predictor <- dat_sub %>%
+  select (-target) %>%
+  gather (-c(subj, age, 
+             sex, grp, time), key = var, value = val) %>%
+  filter (time %in% c(2, 3)) %>%
+  unite (var_time, c("var", "time")) %>%
+  spread (key = var_time, value = val )
+
+
+outcome <- dat_sub %>%
+  gather (-c(subj, age, 
+             sex, grp, time), key = var, value = val) %>%
+  filter (time == 4) %>% # time == 4
+  filter (var %in% target) %>%
+  unite (var_time, c("var", "time")) %>%
+  spread (key =var_time, value = val )
+
+
+dat_wide <- outcome %>%
+  inner_join(predictor, by = c("subj", "age",
+                               "sex", "grp"))
+
+
+```
+
+
+### Check individuals variables with high missing
+
+```{r, results="asis"}
+
+missing_per_indv <- (rowSums(is.na(dat_wide))/ ncol (dat_wide[, -c(1:4)])) * 100 
+
+dat_high_missing <- dat_wide[missing_per_indv == 100,] 
+
+tableby ( ~., data = dat_high_missing, digits = 2, digits.p = 2) %>%
+  summary()
+
+```
+
+
+### Remove subjects with complete missing
+
+```{r}
+dat2 <- dat_wide[missing_per_indv < 100,] 
+```
+
+### Recode some variables
+
+```{r}
+
+dat2$sex <-  factor (dat2$sex) %>% as.numeric()
+dat2$grp <-  factor (dat2$grp)  %>% as.numeric()
+dat2$subj <-  NULL
+
+```
+
+## Save data
+
+```{r}
+
+save (dat,
+      dat2,
+      file = "output/clean_dat.RData")
+
+```
+
+
