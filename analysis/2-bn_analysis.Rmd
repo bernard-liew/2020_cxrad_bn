@@ -1,0 +1,197 @@
+---
+title: "2-bn_analysis"
+author: "Bernard"
+date: "2020-04-17"
+editor_options:
+  chunk_output_type: console
+---
+
+## Introduction
+
+
+### Import libraries
+
+```{r, message=F, warning=F}
+
+rm (list = ls())
+source ("code/load_package.R")
+source ("code/helper_func.R")
+
+```
+
+### Import data
+```{r}
+
+load ("output/clean_dat.RData")
+
+```
+
+
+### BN analysis
+
+#### Create blacklist
+
+```{r, eval= FALSE}
+
+df.bn = as.data.frame (dat2)
+
+demo.var = grep("age|sex|grp", colnames (df.bn), value = TRUE)
+mth3.var = grep("_2", colnames (df.bn), value = TRUE)
+mth6.var = grep("_3", colnames (df.bn), value = TRUE)
+outcome.var = grep("_4", colnames (df.bn), value = TRUE)
+
+
+tiers_bl = list (demo.var, #to
+                 mth3.var) #from
+bl_1 = tiers2blacklist(tiers = tiers_bl)
+
+tiers_bl = list (demo.var, #to
+                 mth6.var) #from
+bl_2 = tiers2blacklist(tiers = tiers_bl)
+
+
+tiers_bl = list (demo.var, #to
+                 outcome.var) #from
+bl_3 = tiers2blacklist(tiers = tiers_bl)
+
+tiers_bl = list (mth3.var, #to
+                 mth6.var) #from
+bl_4 = tiers2blacklist(tiers = tiers_bl)
+
+tiers_bl = list (mth3.var, #to
+                 outcome.var) #from
+bl_5 = tiers2blacklist(tiers = tiers_bl)
+
+tiers_bl = list (mth6.var, #to
+                 outcome.var) #from
+bl_6 = tiers2blacklist(tiers = tiers_bl)
+
+bl = rbind(bl_1, 
+           bl_2, 
+           bl_3,
+           bl_4,
+           bl_5,
+           bl_6)
+
+```
+
+#### Performance evaluation using nested cross validation. 
+
+Inner is bootstrap resampling for model averaging. 
+Outer is bootstrap resampling k = 25 for performance evaluation.
+
+```{r, eval= FALSE}
+
+set.seed (2564)
+
+flds <- createFolds(1:nrow(df.bn), 
+                            k = 10, returnTrain = TRUE)
+n_boot = 200
+doParallel::registerDoParallel(7)
+
+corr.df.list <- list()
+
+for (k in seq_along(flds)) {
+  
+  train <-  df.bn [flds[[k]], ] %>% as.data.frame()
+  test <- df.bn [-flds[[k]], ] %>% as.data.frame()
+  
+  ############
+  
+  boot  =  foreach (B = 1: n_boot) %dopar%{
+      boot.sample = train[sample(nrow(train), 
+                                            nrow(train), replace = TRUE), ]
+      bnlearn::structural.em(boot.sample, impute = "bayes-lw", max.iter = 5,
+                                maximize.args = list(blacklist = bl,  
+                                                     #whitelist = wl.list[[n]],
+                                                      k = log(nrow(boot.sample))))
+  }
+  #############
+  
+  bootstr <-  custom.strength(boot, nodes = names(train))
+  avg <-  averaged.network(bootstr, threshold = 0.5)
+  fit <-  bn.fit (avg, train, method = "mle")
+  
+  imp.list = impute (fit, data = test, method = "bayes-lw")
+  inames = names (imp.list) [-c(1:3)]
+  corr.df =  structure(numeric(length (inames)), names = inames)
+  
+  for (var in inames) {
+      corr.df[var] = cor(predict(fit, data = imp.list, var, method = "bayes-lw"), 
+                         imp.list[, var])
+    }
+  
+  corr.df.list[[k]] <- corr.df
+  
+
+}
+
+corr.df <- bind_cols (corr.df.list) %>%
+  apply (1, mean)
+
+names (corr.df) <- inames
+
+corr.df
+```
+
+#### Build the final model using model averaging
+
+```{r, eval= FALSE}
+
+doParallel::registerDoParallel(7)
+n_boot = 200
+
+
+
+############
+
+boot  =  foreach (B = 1: n_boot) %dopar%{
+    boot.sample = df.bn[sample(nrow(df.bn), 
+                                          nrow(df.bn), replace = TRUE), ]
+    bnlearn::structural.em(boot.sample, impute = "bayes-lw", max.iter = 5,
+                              maximize.args = list(blacklist = bl,  
+                                                   #whitelist = wl.list[[n]],
+                                                    k = log(nrow(boot.sample))))
+}
+#############
+
+
+  
+
+```
+
+#### Get averaged model
+
+```{r}
+
+bootstr <-  custom.strength(boot, nodes = names(df.bn))
+avg <-  averaged.network(bootstr, threshold = 0.5)
+fit <-  bn.fit (avg, df.bn, method = "mle")
+strength.plot(avg, bootstr, shape = "ellipse")
+
+```
+
+
+# Save data
+
+```{r, eval= FALSE}
+
+save(avg, 
+     bl, 
+     demo.var,
+     mth3.var,
+     mth6.var,
+     outcome.var,
+     boot, 
+     bootstr, 
+     corr.df, 
+     corr.df.list, 
+     df.bn, 
+     fit,
+     file = "output/bn_data.RData")
+
+```
+
+
+
+

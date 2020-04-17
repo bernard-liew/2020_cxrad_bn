@@ -1,0 +1,244 @@
+---
+title: "3-report"
+author: "Bernard"
+date: "2020-04-17"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+## Introduction
+
+
+## Import data
+
+```{r}
+
+rm (list = ls())
+
+load ("output/bn_data.RData")
+load ("output/clean_dat.RData")
+
+imp.data = impute (fit, data = df.bn, method = "bayes-lw")
+
+set.seed (123)
+
+```
+
+## Export results
+
+### Correlation performance table
+
+```{r}
+
+var_order <- c("anx_2", "dep_2", "pcs_2", "ses_2", "tsk_2", "vas_arm_2", "vas_head_2", "vas_neck_2",
+               "anx_3", "dep_3", "pcs_3", "ses_3", "tsk_3", "vas_arm_3", "vas_head_3", "vas_neck_3",
+               "ndi_4")
+
+corr.df_ord <- corr.df[var_order] 
+correlation <- data.frame(Variable = names (corr.df_ord),
+                          Value = corr.df_ord %>% round (2))
+
+ft <- flextable(correlation) %>%
+      set_caption(paste0("Correlation between observed and predicted values")) %>%
+      autofit()
+
+my_path <- paste0("../manuscript/table_corr.docx")
+
+my_doc <- read_docx()  %>% 
+  body_add_flextable(ft)
+
+print (my_doc, target = my_path)
+
+```
+
+### Descriptive plot
+
+```{r}
+df.plot <- dat2 %>%
+  pivot_longer(cols = c("ndi_4" : "vas_neck_3"),
+               names_to = "var",
+               values_to = "val") %>%
+  mutate (var = factor (var, levels = var_order),
+          grp = factor (grp, labels = c("general", "structured"))) %>%
+  group_by(grp, var) %>%
+  summarize (Mean = mean (val, na.rm = TRUE),
+             Sd = sd (val, na.rm = TRUE))
+
+
+f <- ggplot (df.plot) +
+  geom_bar(aes (x = grp, y = Mean), colour = "black", fill = "black", stat = "identity") +
+  geom_errorbar(aes (x = grp, ymin = Mean, ymax = Mean + Sd), width = 0.25) +
+  facet_wrap(~ var, scales = "free")
+
+tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig1.tiff")
+f
+dev.off()
+
+```
+
+### BN network plot
+
+```{r fig.height=10, fig.width=10}
+
+gR = graphviz.plot(avg, shape = "rectangle", render = FALSE)
+sg0 = list(graph = subGraph(demo.var, gR), cluster = TRUE)
+sg1 = list(graph = subGraph(mth3.var, gR), cluster = TRUE)
+sg2 = list(graph = subGraph(mth6.var, gR), cluster = TRUE)
+sg3 = list(graph = subGraph(outcome.var, gR), cluster = TRUE)
+
+gR = layoutGraph(gR, subGList = list(sg0, sg1, sg2, sg3),
+                 attrs = list(graph = list(rankdir = "LR")))
+nodeRenderInfo(gR)$fill[demo.var] = "tomato"
+nodeRenderInfo(gR)$fill[mth3.var] = "gold"
+nodeRenderInfo(gR)$fill[mth6.var] = "cornsilk"
+nodeRenderInfo(gR)$fill[outcome.var] = "green"
+nodeRenderInfo(gR) <- list(fontsize=15)
+renderGraph(gR)
+
+tiff(width = 15, height = 8, units = "in", res = 300, file = "../manuscript/fig2.tiff")
+renderGraph(gR)
+dev.off()
+
+
+```
+
+
+## Probing the expert system
+
+### Evaluating the mediating infuence of `vas_neck_3` and `ses_3` on the `anx_2`-`ndi_4` relationship
+
+#### Influence of `anx_2` and `ndi_4`
+
+```{r fig.height=10, fig.width=10}
+
+sim = cpdist(fit, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ anx_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+summary (m)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
+                  r^2 == .(r2))
+
+tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig3.tiff")
+ plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
+  abline(coef(m), lwd = 2) +
+  abline(v = 0, col = 2, lty = 2, lwd = 2) +
+  abline(h = 0, col = 2, lty = 2, lwd = 2) +
+  text(x = 15, y = 100, labels = eqn, cex = 1.2)
+dev.off()
+
+```
+
+
+#### Influence of `anx_2` and `ndi_4` when `ses_3` is constant
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+avg.mutilated = mutilated(avg, evidence = list(ses_3 = 0))
+strength.plot(avg.mutilated, bootstr)
+
+fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
+fitted.mutilated$ses_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ anx_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+
+summary (m)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
+                  r^2 == .(r2))
+
+
+plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") + 
+  abline(coef(m), lwd = 2) +
+  abline(v = 0, col = 2, lty = 2, lwd = 2) +
+  abline(h = 0, col = 2, lty = 2, lwd = 2) +
+  text(x = 15, y = 100, labels = eqn, cex = 1.2)
+
+
+```
+
+#### Influence of `anx_2` and `ndi_4` when `vas_neck_3` is constant
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+avg.mutilated = mutilated(avg, evidence = list(vas_neck_3 = 0))
+strength.plot(avg.mutilated, bootstr)
+
+fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
+fitted.mutilated$vas_neck_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ anx_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+
+summary (m)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
+                  r^2 == .(r2))
+
+plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") + 
+  abline(coef(m), lwd = 2) +
+  abline(v = 0, col = 2, lty = 2, lwd = 2) +
+  abline(h = 0, col = 2, lty = 2, lwd = 2) +
+  text(x = 15, y = 60, labels = eqn, cex = 1.2)
+
+
+
+```
+
+#### Influence of `anx_2` and `ndi_4` when `ses_3` and `vas_neck_3` are both constant
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+avg.mutilated = mutilated(avg, evidence = list(vas_neck_3 = 0, ses_3 = 0))
+strength.plot(avg.mutilated, bootstr)
+
+fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
+fitted.mutilated$vas_neck_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+fitted.mutilated$ses_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ anx_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
+                  r^2 == .(r2))
+
+summary (m)
+
+plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") + 
+abline(coef(m), lwd = 2) +
+abline(v = 0, col = 2, lty = 2, lwd = 2) +
+abline(h = 0, col = 2, lty = 2, lwd = 2) +
+text(x = 15, y = 100, labels = eqn, cex = 1.2)
+
+```
+
+
