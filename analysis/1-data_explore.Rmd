@@ -139,6 +139,8 @@ target <- c("ndi")
 
 predictor <- dat_sub %>%
   select (-target) %>%
+  mutate (pain = rowMeans(select (., contains ("vas")), na.rm = TRUE)) %>%
+  select (-c(vas_neck, vas_arm, vas_head)) %>%
   gather (-c(subj, age, 
              sex, grp, time), key = var, value = val) %>%
   filter (time %in% c(2, 3)) %>%
