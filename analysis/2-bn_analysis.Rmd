@@ -1,7 +1,8 @@
 ---
 title: "2-bn_analysis"
 author: "Bernard"
-date: "2020-04-17"
+date: '2020-04-17'
+output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
 ---
@@ -162,7 +163,7 @@ boot  =  foreach (B = 1: n_boot) %dopar%{
 
 #### Get averaged model
 
-```{r}
+```{r, eval= FALSE}
 
 bootstr <-  custom.strength(boot, nodes = names(df.bn))
 avg <-  averaged.network(bootstr, threshold = 0.5)

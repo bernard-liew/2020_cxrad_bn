@@ -33,7 +33,7 @@ names (dat)[1:length (var_names)] <- var_names
 
 ### Get column names
 
-```{r, eval= FALSE}
+```{r}
 
 names (dat) <- tolower(names (dat))
 
@@ -44,7 +44,7 @@ var_names <- names (dat)
 
 ### Remove redundant variables
 
-```{r, eval= FALSE}
+```{r}
 keep_var <- c ("time",
                "subj",
               "age",
@@ -70,7 +70,7 @@ dat_sub <- map_df (dat_sub, make_NA)
 
 #### Create report
 
-```{r}
+```{r, eval = FALSE}
 
 dat_sub %>%
   mutate (sex = factor (sex),
@@ -133,7 +133,7 @@ tableby (time ~., data = dat_sub, digits = 2, digits.p = 2) %>%
 Keep all variables except NDI in time = 2 and time = 3 as predictors
 Keep NDI in time 4 as outcome
 
-```{r, eval= FALSE}
+```{r}
 
 target <- c("ndi")
 
@@ -198,7 +198,7 @@ dat2$subj <-  NULL
 
 ## Save data
 
-```{r}
+```{r, eval = FALSE}
 
 save (dat,
       dat2,
