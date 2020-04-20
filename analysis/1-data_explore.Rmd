@@ -139,7 +139,8 @@ target <- c("ndi")
 
 predictor <- dat_sub %>%
   select (-target) %>%
-  mutate (pain = rowMeans(select (., contains ("vas")), na.rm = TRUE)) %>%
+  mutate (neckarm_pain = rowMeans(select (., matches ("neck|arm")), na.rm = TRUE)) %>%
+  mutate (head_pain = vas_head) %>%
   select (-c(vas_neck, vas_arm, vas_head)) %>%
   gather (-c(subj, age, 
              sex, grp, time), key = var, value = val) %>%
@@ -174,7 +175,7 @@ missing_per_indv <- (rowSums(is.na(dat_wide))/ ncol (dat_wide[, -c(1:4)])) * 100
 dat_high_missing <- dat_wide[missing_per_indv == 100,] 
 
 tableby ( ~., data = dat_high_missing, digits = 2, digits.p = 2) %>%
-  summary()
+  summary(text = TRUE)
 
 ```
 
