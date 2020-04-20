@@ -31,13 +31,17 @@ set.seed (123)
 
 ```{r}
 
-var_order <- c("anx_2", "dep_2", "pcs_2", "ses_2", "tsk_2", "vas_arm_2", "vas_head_2", "vas_neck_2",
-               "anx_3", "dep_3", "pcs_3", "ses_3", "tsk_3", "vas_arm_3", "vas_head_3", "vas_neck_3",
-               "ndi_4")
+var_order <- c("anx_2", "dep_2", "pcs_2", "ses_2", "tsk_2", "neckarm_pain_2", "head_pain_2",
+               "anx_3", "dep_3", "pcs_3", "ses_3", "tsk_3", "neckarm_pain_3", "head_pain_3", "ndi_4")
 
 corr.df_ord <- corr.df[var_order] 
 correlation <- data.frame(Variable = names (corr.df_ord),
-                          Value = corr.df_ord %>% round (2))
+                          Value = corr.df_ord %>% round (2)) %>%
+  mutate (Strength = ifelse (abs (Value) <= 0.3, "negligible",
+                             ifelse (abs(Value) > 0.3 & abs(Value <= 0.5), "low",
+                                     ifelse (abs(Value) > 0.5 & abs(Value <= 0.7), "moderate",
+                                             ifelse (abs(Value) > 0.7 & abs(Value <= 0.9), "high",
+                                                     "very high")))))
 
 ft <- flextable(correlation) %>%
       set_caption(paste0("Correlation between observed and predicted values")) %>%
@@ -56,7 +60,7 @@ print (my_doc, target = my_path)
 
 ```{r}
 df.plot <- dat2 %>%
-  pivot_longer(cols = c("ndi_4" : "vas_neck_3"),
+  pivot_longer(cols = c("ndi_4" : "tsk_3"),
                names_to = "var",
                values_to = "val") %>%
   mutate (var = factor (var, levels = var_order),
@@ -93,10 +97,10 @@ nodeRenderInfo(gR)$fill[demo.var] = "tomato"
 nodeRenderInfo(gR)$fill[mth3.var] = "gold"
 nodeRenderInfo(gR)$fill[mth6.var] = "cornsilk"
 nodeRenderInfo(gR)$fill[outcome.var] = "green"
-nodeRenderInfo(gR) <- list(fontsize=15)
+nodeRenderInfo(gR) <- list(fontsize=20)
 renderGraph(gR)
 
-tiff(width = 15, height = 8, units = "in", res = 300, file = "../manuscript/fig2.tiff")
+tiff(width = 20, height = 8, units = "in", res = 300, file = "../manuscript/fig2.tiff")
 renderGraph(gR)
 dev.off()
 
@@ -106,13 +110,13 @@ dev.off()
 
 ## Probing the expert system
 
-### Evaluating the mediating infuence of `vas_neck_3` and `ses_3` on the `anx_2`-`ndi_4` relationship
+### Evaluating the mediating infuence of `neckarm_pain_2` and `ses_3` on the `anx_2`-`ndi_4` relationship
 
 #### Influence of `anx_2` and `ndi_4`
 
 ```{r fig.height=10, fig.width=10}
 
-sim = cpdist(fit, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+sim <- cpdist(fit, nodes = c("ndi_4", "anx_2"), n = 10^4,
                evidence = (TRUE))
 
 m <- lm(ndi_4 ~ anx_2, data = sim)
@@ -127,11 +131,13 @@ eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~
                   r^2 == .(r2))
 
 tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig3.tiff")
+
  plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
   abline(coef(m), lwd = 2) +
   abline(v = 0, col = 2, lty = 2, lwd = 2) +
   abline(h = 0, col = 2, lty = 2, lwd = 2) +
-  text(x = 15, y = 100, labels = eqn, cex = 1.2)
+  text(x = 15, y = 80, labels = eqn, cex = 1.2)
+ 
 dev.off()
 
 ```
@@ -147,7 +153,7 @@ strength.plot(avg.mutilated, bootstr)
 fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
 fitted.mutilated$ses_3 = list(coef = c("(Intercept)" = 0), sd = 0)
 
-sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2"), n = 10^4,
                evidence = (TRUE))
 
 m <- lm(ndi_4 ~ anx_2, data = sim)
@@ -172,17 +178,17 @@ plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") +
 
 ```
 
-#### Influence of `anx_2` and `ndi_4` when `vas_neck_3` is constant
+#### Influence of `anx_2` and `ndi_4` when `neckarm_pain_2` is constant
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 
-avg.mutilated = mutilated(avg, evidence = list(vas_neck_3 = 0))
+avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0))
 strength.plot(avg.mutilated, bootstr)
 
 fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
-fitted.mutilated$vas_neck_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+fitted.mutilated$neckarm_pain_2 = list(coef = c("(Intercept)" = 0), sd = 0)
 
-sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2"), n = 10^4,
                evidence = (TRUE))
 
 m <- lm(ndi_4 ~ anx_2, data = sim)
@@ -207,18 +213,18 @@ plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") +
 
 ```
 
-#### Influence of `anx_2` and `ndi_4` when `ses_3` and `vas_neck_3` are both constant
+#### Influence of `anx_2` and `ndi_4` when `ses_3` and `neckarm_pain_2` are both constant
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 
-avg.mutilated = mutilated(avg, evidence = list(vas_neck_3 = 0, ses_3 = 0))
+avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0, ses_3 = 0))
 strength.plot(avg.mutilated, bootstr)
 
 fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
-fitted.mutilated$vas_neck_3 = list(coef = c("(Intercept)" = 0), sd = 0)
+fitted.mutilated$neckarm_pain_2 = list(coef = c("(Intercept)" = 0), sd = 0)
 fitted.mutilated$ses_3 = list(coef = c("(Intercept)" = 0), sd = 0)
 
-sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2", "vas_neck_3"), n = 10^4,
+sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2"), n = 10^4,
                evidence = (TRUE))
 
 m <- lm(ndi_4 ~ anx_2, data = sim)
@@ -242,3 +248,67 @@ text(x = 15, y = 100, labels = eqn, cex = 1.2)
 ```
 
 
+### Evaluating the mediating infuence of `neckarm_pain_2` on the `head_pain_2`-`ndi_4` relationship
+
+#### Influence of `head_pain_2` and `ndi_4`
+
+```{r fig.height=10, fig.width=10}
+
+sim <- cpdist(fit, nodes = c("ndi_4", "head_pain_2"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ head_pain_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+summary (m)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(head_pain_2) * "," ~~ 
+                  r^2 == .(r2))
+
+tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig3.tiff")
+
+ plot(sim$head_pain_2, sim$ndi_4, ylab = "ndi_4", xlab = "head_pain_2", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
+  abline(coef(m), lwd = 2) +
+  abline(v = 0, col = 2, lty = 2, lwd = 2) +
+  abline(h = 0, col = 2, lty = 2, lwd = 2) +
+  text(x = 15, y = 75, labels = eqn, cex = 1.2)
+ 
+dev.off()
+
+```
+
+#### Influence of `head_pain_2` and `ndi_4` when `neckarm_pain_2` is constant
+
+```{r fig.height=10, fig.width=10}
+
+avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0))
+strength.plot(avg.mutilated, bootstr)
+
+fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
+fitted.mutilated$neckarm_pain_2 = list(coef = c("(Intercept)" = 0), sd = 0)
+
+sim <- cpdist(fitted.mutilated, nodes = c("ndi_4", "head_pain_2"), n = 10^4,
+               evidence = (TRUE))
+
+m <- lm(ndi_4 ~ head_pain_2, data = sim)
+
+coefs <- coef(m) 
+b0 <- round(coefs[1], 2)
+b1 <- round(coefs[2],2)
+r2 <- round(summary(m)$r.squared, 2)
+summary (m)
+
+eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(head_pain_2) * "," ~~ 
+                  r^2 == .(r2))
+
+plot(sim$head_pain_2, sim$ndi_4, ylab = "ndi_4", xlab = "head_pain_2", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
+  abline(coef(m), lwd = 2) +
+  abline(v = 0, col = 2, lty = 2, lwd = 2) +
+  abline(h = 0, col = 2, lty = 2, lwd = 2) +
+  text(x = 15, y = 75, labels = eqn, cex = 1.2)
+ 
+
+```
