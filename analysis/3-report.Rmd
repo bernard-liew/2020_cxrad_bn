@@ -16,12 +16,12 @@ editor_options:
 
 rm (list = ls())
 
+source ("code/load_package.R")
+
 load ("output/bn_data.RData")
 load ("output/clean_dat.RData")
 
 imp.data = impute (fit, data = df.bn, method = "bayes-lw")
-
-set.seed (123)
 
 ```
 
@@ -81,6 +81,20 @@ dev.off()
 
 ```
 
+### Plot missing data of subset data
+
+```{r, results="asis"}
+
+f <- plot_missing(dat2) +
+  labs (y = "Percentage missing",
+        x = "Variables")
+
+tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/sm_fig1.tiff")
+f
+dev.off()
+
+```
+
 ### BN network plot
 
 ```{r fig.height=10, fig.width=10}
@@ -116,6 +130,8 @@ dev.off()
 
 ```{r fig.height=10, fig.width=10}
 
+set.seed(123)
+
 sim <- cpdist(fit, nodes = c("ndi_4", "anx_2"), n = 10^4,
                evidence = (TRUE))
 
@@ -146,6 +162,8 @@ dev.off()
 #### Influence of `anx_2` and `ndi_4` when `ses_3` is constant
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+set.seed(123)
 
 avg.mutilated = mutilated(avg, evidence = list(ses_3 = 0))
 strength.plot(avg.mutilated, bootstr)
@@ -178,81 +196,13 @@ plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") +
 
 ```
 
-#### Influence of `anx_2` and `ndi_4` when `neckarm_pain_2` is constant
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-
-avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0))
-strength.plot(avg.mutilated, bootstr)
-
-fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
-fitted.mutilated$neckarm_pain_2 = list(coef = c("(Intercept)" = 0), sd = 0)
-
-sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2"), n = 10^4,
-               evidence = (TRUE))
-
-m <- lm(ndi_4 ~ anx_2, data = sim)
-
-coefs <- coef(m) 
-b0 <- round(coefs[1], 2)
-b1 <- round(coefs[2],2)
-r2 <- round(summary(m)$r.squared, 2)
-
-summary (m)
-
-eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
-                  r^2 == .(r2))
-
-plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") + 
-  abline(coef(m), lwd = 2) +
-  abline(v = 0, col = 2, lty = 2, lwd = 2) +
-  abline(h = 0, col = 2, lty = 2, lwd = 2) +
-  text(x = 15, y = 60, labels = eqn, cex = 1.2)
-
-
-
-```
-
-#### Influence of `anx_2` and `ndi_4` when `ses_3` and `neckarm_pain_2` are both constant
-
-```{r echo=TRUE, message=FALSE, warning=FALSE}
-
-avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0, ses_3 = 0))
-strength.plot(avg.mutilated, bootstr)
-
-fitted.mutilated = bn.fit (avg.mutilated , df.bn, method = "mle")
-fitted.mutilated$neckarm_pain_2 = list(coef = c("(Intercept)" = 0), sd = 0)
-fitted.mutilated$ses_3 = list(coef = c("(Intercept)" = 0), sd = 0)
-
-sim = cpdist(fitted.mutilated, nodes = c("ndi_4", "anx_2"), n = 10^4,
-               evidence = (TRUE))
-
-m <- lm(ndi_4 ~ anx_2, data = sim)
-
-coefs <- coef(m) 
-b0 <- round(coefs[1], 2)
-b1 <- round(coefs[2],2)
-r2 <- round(summary(m)$r.squared, 2)
-
-eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(anx_2) * "," ~~ 
-                  r^2 == .(r2))
-
-summary (m)
-
-plot(sim$anx_2, sim$ndi_4, ylab = "ndi_4", xlab = "anx_2", col = "grey") + 
-abline(coef(m), lwd = 2) +
-abline(v = 0, col = 2, lty = 2, lwd = 2) +
-abline(h = 0, col = 2, lty = 2, lwd = 2) +
-text(x = 15, y = 100, labels = eqn, cex = 1.2)
-
-```
-
 
 ### Evaluating the mediating infuence of `neckarm_pain_2` on the `head_pain_2`-`ndi_4` relationship
 
 #### Influence of `head_pain_2` and `ndi_4`
 
 ```{r fig.height=10, fig.width=10}
+set.seed(123)
 
 sim <- cpdist(fit, nodes = c("ndi_4", "head_pain_2"), n = 10^4,
                evidence = (TRUE))
@@ -283,6 +233,7 @@ dev.off()
 #### Influence of `head_pain_2` and `ndi_4` when `neckarm_pain_2` is constant
 
 ```{r fig.height=10, fig.width=10}
+set.seed(123)
 
 avg.mutilated = mutilated(avg, evidence = list(neckarm_pain_2 = 0))
 strength.plot(avg.mutilated, bootstr)
