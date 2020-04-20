@@ -190,8 +190,8 @@ dat2 <- dat_wide[missing_per_indv < 100,]
 
 ```{r}
 
-dat2$sex <-  factor (dat2$sex) %>% as.numeric()
-dat2$grp <-  factor (dat2$grp)  %>% as.numeric()
+dat2$sex <-  factor (dat2$sex) 
+dat2$grp <-  factor (dat2$grp)  
 dat2$subj <-  NULL
 
 ```
