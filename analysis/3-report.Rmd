@@ -105,13 +105,13 @@ sg1 = list(graph = subGraph(mth3.var, gR), cluster = TRUE)
 sg2 = list(graph = subGraph(mth6.var, gR), cluster = TRUE)
 sg3 = list(graph = subGraph(outcome.var, gR), cluster = TRUE)
 
-gR = layoutGraph(gR, subGList = list(sg0, sg1, sg2, sg3),
-                 attrs = list(graph = list(rankdir = "LR")))
+# gR = layoutGraph(gR, subGList = list(sg0, sg1, sg2, sg3),
+#                  attrs = list(graph = list(rankdir = "LR")))
 nodeRenderInfo(gR)$fill[demo.var] = "tomato"
 nodeRenderInfo(gR)$fill[mth3.var] = "gold"
 nodeRenderInfo(gR)$fill[mth6.var] = "cornsilk"
 nodeRenderInfo(gR)$fill[outcome.var] = "green"
-nodeRenderInfo(gR) <- list(fontsize=20)
+nodeRenderInfo(gR) <- list(fontsize=15)
 renderGraph(gR)
 
 tiff(width = 20, height = 8, units = "in", res = 300, file = "../manuscript/fig2.tiff")
@@ -218,7 +218,7 @@ summary (m)
 eqn <- bquote(italic(ndi_4) == .(b0) + .(b1)*italic(head_pain_2) * "," ~~ 
                   r^2 == .(r2))
 
-tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig3.tiff")
+tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig4.tiff")
 
  plot(sim$head_pain_2, sim$ndi_4, ylab = "ndi_4", xlab = "head_pain_2", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
   abline(coef(m), lwd = 2) +
