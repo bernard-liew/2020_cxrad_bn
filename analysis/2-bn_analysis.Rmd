@@ -97,6 +97,7 @@ for (k in seq_along(flds)) {
   train <-  df.bn [flds[[k]], ] %>% as.data.frame()
   test <- df.bn [-flds[[k]], ] %>% as.data.frame()
   
+  doParallel::registerDoParallel(7)
   ############
   
   boot  =  foreach (B = 1: n_boot) %dopar%{
@@ -104,10 +105,10 @@ for (k in seq_along(flds)) {
                                             nrow(train), replace = TRUE), ]
       bnlearn::structural.em(boot.sample, impute = "bayes-lw", max.iter = 5,
                                 maximize.args = list(blacklist = bl,  
-                                                     #whitelist = wl.list[[n]],
                                                       k = log(nrow(boot.sample))))
   }
   #############
+  stopImplicitCluster()
   
   bootstr <-  custom.strength(boot, nodes = names(train))
   avg <-  averaged.network(bootstr, threshold = 0.5)
@@ -150,9 +151,7 @@ boot  =  foreach (B = 1: n_boot) %dopar%{
     boot.sample = df.bn[sample(nrow(df.bn), 
                                           nrow(df.bn), replace = TRUE), ]
     bnlearn::structural.em(boot.sample, impute = "bayes-lw", max.iter = 5,
-                              maximize.args = list(blacklist = bl,  
-                                                   #whitelist = wl.list[[n]],
-                                                    k = log(nrow(boot.sample))))
+                              maximize.args = list(blacklist = bl))
 }
 #############
 
