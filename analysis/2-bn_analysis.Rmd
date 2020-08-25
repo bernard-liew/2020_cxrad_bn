@@ -35,6 +35,7 @@ load ("output/clean_dat.RData")
 ```{r, eval= FALSE}
 
 df.bn = as.data.frame (dat2)
+df.bn$age <- NULL
 
 demo.var = grep("age|sex|grp", colnames (df.bn), value = TRUE)
 mth3.var = grep("_2", colnames (df.bn), value = TRUE)
@@ -111,11 +112,11 @@ for (k in seq_along(flds)) {
   stopImplicitCluster()
   
   bootstr <-  custom.strength(boot, nodes = names(train))
-  avg <-  averaged.network(bootstr, threshold = 0.5)
+  avg <-  averaged.network(bootstr, threshold = 0.7)
   fit <-  bn.fit (avg, train, method = "mle")
   
   imp.list = impute (fit, data = test, method = "bayes-lw")
-  inames = names (imp.list) [-c(1:3)]
+  inames = names (imp.list) [-c(1:2)]
   corr.df =  structure(numeric(length (inames)), names = inames)
   
   for (var in inames) {
@@ -165,7 +166,7 @@ boot  =  foreach (B = 1: n_boot) %dopar%{
 ```{r, eval= FALSE}
 
 bootstr <-  custom.strength(boot, nodes = names(df.bn))
-avg <-  averaged.network(bootstr, threshold = 0.5)
+avg <-  averaged.network(bootstr, threshold = 0.7)
 fit <-  bn.fit (avg, df.bn, method = "mle")
 strength.plot(avg, bootstr, shape = "ellipse")
 
