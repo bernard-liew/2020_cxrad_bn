@@ -172,9 +172,21 @@ dat_wide <- outcome %>%
 
 missing_per_indv <- (rowSums(is.na(dat_wide))/ ncol (dat_wide[, -c(1:4)])) * 100 
 
-dat_high_missing <- dat_wide[missing_per_indv == 100,] 
 
-tableby ( ~., data = dat_high_missing, digits = 2, digits.p = 2) %>%
+baseline <- dat_sub %>%
+  select (-target) %>%
+  mutate (neckarm_pain = rowMeans(select (., matches ("neck|arm")), na.rm = TRUE)) %>%
+  mutate (head_pain = vas_head) %>%
+  select (-c(vas_neck, vas_arm, vas_head)) %>%
+  gather (-c(subj, age, 
+             sex, grp, time), key = var, value = val) %>%
+  filter (time %in% c(1)) %>%
+  unite (var_time, c("var", "time")) %>%
+  spread (key = var_time, value = val ) 
+
+baseline$miss <- ifelse (missing_per_indv == 100, "yes", "no")
+
+tableby (miss ~. , data = baseline, digits = 2, digits.p = 2) %>%
   summary(text = TRUE)
 
 ```
