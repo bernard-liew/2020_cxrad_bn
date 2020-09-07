@@ -30,5 +30,8 @@ pacman::p_load(
 
   # Feature parallel
   doParallel,
-  Rgraphviz
+  Rgraphviz,
+
+  # Plot
+  cowplot
 )
