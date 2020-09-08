@@ -81,7 +81,7 @@ f <- ggplot (df.plot) +
   facet_wrap(~ var, scales = "free") +
   theme_cowplot()
 
-tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig1.tiff")
+tiff(width = 10, height = 8, units = "in", res = 100, file = "../manuscript/fig1.tiff")
 f
 dev.off()
 
@@ -100,7 +100,7 @@ f <- plot_missing(dat2) +
   labs (y = "Percentage missing",
         x = "Variables")
 
-tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/sm_fig1.tiff")
+tiff(width = 10, height = 8, units = "in", res = 100, file = "../manuscript/sm_fig1.tiff")
 f
 dev.off()
 
@@ -179,7 +179,7 @@ graph::nodeRenderInfo(g) = list(fontsize=14)
 
 
 renderGraph(g)
-tiff(width = 20, height = 10, units = "in", res = 200, file = "../manuscript/fig2.tiff")
+tiff(width = 20, height = 10, units = "in", res = 100, file = "../manuscript/fig2.tiff")
 renderGraph(g)
 dev.off()
 
@@ -220,7 +220,7 @@ summary (m)
 eqn <- bquote(italic(ndi_12) == .(b0) + .(b1)*italic(anx_3) * "," ~~ 
                   r^2 == .(r2))
 
-tiff(width = 12, height = 8, units = "in", res = 300, file = "../manuscript/fig3.tiff")
+tiff(width = 12, height = 8, units = "in", res = 100, file = "../manuscript/fig3.tiff")
 
  plot(sim$anx_3, sim$ndi_12, ylab = "12th mth NDI", xlab = "3rd mth Anxiety", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
   abline(coef(m), lwd = 2) +
@@ -365,7 +365,7 @@ summary (m)
 eqn <- bquote(italic(ndi_12) == .(b0) + .(b1)*italic(head_pain_3) * "," ~~ 
                   r^2 == .(r2))
 
-tiff(width = 10, height = 8, units = "in", res = 300, file = "../manuscript/fig4.tiff")
+tiff(width = 10, height = 8, units = "in", res = 100, file = "../manuscript/fig4.tiff")
 
 plot(sim$head_pain_3, sim$ndi_12, ylab = "12th mth NDI", xlab = "2nd mth headpain", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
   abline(coef(m), lwd = 2) +
