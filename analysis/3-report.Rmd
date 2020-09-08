@@ -367,7 +367,7 @@ eqn <- bquote(italic(ndi_12) == .(b0) + .(b1)*italic(head_pain_3) * "," ~~
 
 tiff(width = 10, height = 8, units = "in", res = 100, file = "../manuscript/fig4.tiff")
 
-plot(sim$head_pain_3, sim$ndi_12, ylab = "12th mth NDI", xlab = "2nd mth headpain", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
+plot(sim$head_pain_3, sim$ndi_12, ylab = "12th mth NDI", xlab = "3rd mth headpain", col = "grey", cex.axis = 1.5, cex.lab = 1.5) + 
   abline(coef(m), lwd = 2) +
   abline(v = 0, col = 2, lty = 2, lwd = 2) +
   abline(h = 0, col = 2, lty = 2, lwd = 2) +
