@@ -186,9 +186,35 @@ baseline <- dat_sub %>%
 
 baseline$miss <- ifelse (missing_per_indv == 100, "yes", "no")
 
-tableby (miss ~. , data = baseline, digits = 2, digits.p = 2) %>%
-  summary(text = TRUE)
+tab1 <- tableby (miss ~. , data = baseline, digits = 2, digits.p = 2) %>%
+  as.data.frame() %>%
+  filter (!term %in% c("Nmiss", "range")) %>%
+  select (-c(group.term:term, variable.type, test, p.value, Total)) 
 
+tab2 <-  tab1[-seq (1, 22, 2),]
+tab2$label <- tab1[seq (1, 22, 2),1]
+tab2 <- tab2[!grepl ("subj|grp", tab2$label),]
+
+for(row in 1:nrow(tab2)) {
+  for(col in 2:ncol(tab2)) {
+    tab2[row, col] <- meanNsd_transform (tab2[row, col])
+  }
+}
+
+colnames (tab2) <- c ("Baseline variable", "Included (n = 97)", "Excluded (n = 47)")
+
+my_path <- paste0("../manuscript/table_1_", 
+                  "missing",
+                  ".docx")
+
+ft <- flextable(tab2) %>%
+  autofit()
+
+my_doc <- read_docx()  %>% 
+  body_add_flextable(ft) %>%
+  body_end_section_landscape()
+
+print (my_doc, target = my_path)
 ```
 
 
