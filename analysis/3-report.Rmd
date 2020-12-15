@@ -69,16 +69,18 @@ df.plot <- dat2 %>%
                names_to = "var",
                values_to = "val") %>%
   mutate (var = factor (var, levels = var_order, labels = var_label),
-          grp = factor (grp, labels = c("general", "structured"))) %>%
+          grp = factor (grp, labels = c("NST", "PPA"))) %>%
   group_by(grp, var) %>%
   summarize (Mean = mean (val, na.rm = TRUE),
              Sd = sd (val, na.rm = TRUE))
 
 
 f <- ggplot (df.plot) +
-  geom_bar(aes (x = grp, y = Mean), colour = "black", fill = "black", stat = "identity") +
-  geom_errorbar(aes (x = grp, ymin = Mean, ymax = Mean + Sd), width = 0.25) +
+  geom_point (aes (x = grp, y = Mean), colour = "black") +
+  geom_errorbar(aes (x = grp, ymin = Mean - Sd, ymax = Mean + Sd), width = 0.25) +
   facet_wrap(~ var, scales = "free") +
+  labs (x = "Group",
+        y = "Score") + 
   theme_cowplot()
 
 tiff(width = 10, height = 8, units = "in", res = 100, file = "../manuscript/fig1.tiff")
@@ -126,6 +128,8 @@ early.var <-  grep ("_3", nodes (avg), value = TRUE)
 late.var <-  grep ("_6", nodes (avg), value = TRUE)
 out.var <-  grep ("_12", nodes (avg), value = TRUE)
 
+groups = list(early.var, out.var) 
+
 # Rename columns
 df.bn <- df.bn %>%
   select (grp, sex, var_order)
@@ -141,7 +145,9 @@ fit = bn.fit (avg, df.bn, method = "mle")
 
 g = strength.plot(avg, 
                   bootstr, 
-                  shape = "rectangle")
+                  shape = "rectangle",
+                  groups = groups,
+                  layout = "dot")
 
 graph::nodeRenderInfo(g) = list(fontsize=18)
 renderGraph(g)
@@ -179,8 +185,8 @@ graph::nodeRenderInfo(g) = list(fontsize=14)
 
 
 renderGraph(g)
-tiff(width = 20, height = 10, units = "in", res = 100, file = "../manuscript/fig2.tiff")
-renderGraph(g)
+tiff(width = 20, height = 10, units = "in", res = 100, file = "../manuscript/fig2v2.tiff")
+renderGraph(g, attrs = list(graph = list(rankdir = "LR")))
 dev.off()
 
 
